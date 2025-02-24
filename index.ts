@@ -164,7 +164,9 @@ async function main() {
       }
     }
 
-    await sendGroupedTelegramMessage(productsInStock, timestamp);
+    if (productsInStock.length > 0) {
+      await sendGroupedTelegramMessage(productsInStock, timestamp);
+    }
   } else {
     console.log("Outside of operation hours (7 AM - 11 PM JST). Skipping check.");
   }
@@ -173,5 +175,12 @@ async function main() {
 // Uncomment this to update matcha list
 // saveProductsToFile();
 
-const interval = 120000; // 2 minutes interval
-setInterval(main, interval);
+// const interval = 300000; // 5 minutes interval
+// setInterval(main, interval);
+
+(async () => {
+  console.log("Running bot script...");
+  await main();
+  console.log("Script execution completed.");
+  process.exit(0); // Ensure the script exits after running
+})();
