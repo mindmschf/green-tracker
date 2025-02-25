@@ -156,6 +156,7 @@ async function main() {
     }[] = [];
 
     if (!products) {
+      console.log('No products from file.')
       return;
     }
 
@@ -168,9 +169,13 @@ async function main() {
 
     if (productsInStock.length > 0) {
       await sendGroupedTelegramMessage(productsInStock, timestamp);
+    } else {
+      console.log('No products in stock.')
+      return;
     }
   } else {
     console.log("Outside of operation hours (7 AM - 11 PM JST). Skipping check.");
+    return;
   }
 }
 
