@@ -142,9 +142,11 @@ async function main() {
     timeStyle: "long",
     timeZone: "Asia/Singapore",
   });
-  console.log("main called", timestamp);
+  
   const jstHour = now.getUTCHours() + 9;
 
+  console.log("main called", timestamp, jstHour);
+  
   if (jstHour >= 7 && jstHour < 23) {
     const products = await readProductsFromFile();
     const productsInStock: {
