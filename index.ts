@@ -15,6 +15,7 @@ const CATEGORY_URLS = [
   "https://www.sazentea.com/en/products/c114-kanbayashi-shunsho-matcha",
   "https://www.sazentea.com/en/products/c25-hekisuien-matcha",
   "https://www.sazentea.com/en/products/c41-horii-shichimeien-matcha",
+  "https://www.sazentea.com/en/products/c26-hokoen-matcha",
 ];
 
 const bot = new Telegraf(TELEGRAM_BOT_TOKEN);
@@ -94,13 +95,6 @@ async function fetchProductLinks(): Promise<{ manufacturer: string; name: string
   return Array.from(products.entries()).map(([url, { manufacturer, name }]) => ({ manufacturer, name, url }));
 }
 
-async function saveProductsToFile() {
-  const products = await fetchProductLinks();
-  const jsonData = JSON.stringify(products, null, 2);
-  fs.writeFileSync("matcha.json", jsonData, "utf8");
-  console.log("Products data has been saved to matcha.json");
-}
-
 async function checkStockStatus(product: { manufacturer: string; name: string; url: string }): Promise<boolean> {
   try {
     const response = await axios.get(product.url, { headers: HEADERS });
@@ -124,7 +118,10 @@ async function sendGroupedTelegramMessage(
     const currentProductUrls = new Set(productsInStock.map((product) => product.url));
     const previousInStockProducts = readPreviousStock();
 
-    if (previousInStockProducts.size === currentProductUrls.size && [...previousInStockProducts].every((url) => currentProductUrls.has(url))) {
+    if (
+      previousInStockProducts.size === currentProductUrls.size &&
+      [...previousInStockProducts].every((url) => currentProductUrls.has(url))
+    ) {
       console.log("No change in stock. Skipping message.");
       return;
     }
@@ -151,11 +148,11 @@ async function main() {
     timeStyle: "long",
     timeZone: "Asia/Singapore",
   });
-  
+
   const jstHour = now.getUTCHours() + 9;
 
   console.log("main called", timestamp, jstHour);
-  
+
   if (jstHour >= 7 && jstHour < 23) {
     const products = await readProductsFromFile();
     const productsInStock: {
@@ -165,7 +162,7 @@ async function main() {
     }[] = [];
 
     if (!products) {
-      console.log('No products from file.')
+      console.log("No products from file.");
       return;
     }
 
@@ -179,7 +176,7 @@ async function main() {
     if (productsInStock.length > 0) {
       await sendGroupedTelegramMessage(productsInStock, timestamp);
     } else {
-      console.log('No products in stock.')
+      console.log("No products in stock.");
       return;
     }
   } else {
@@ -187,6 +184,14 @@ async function main() {
     return;
   }
 }
+
+// NOTE: THIS WILL REMOVE/REPLACE PREVIOUSLY SAVED ITEMS
+// async function saveProductsToFile() {
+//   const products = await fetchProductLinks();
+//   const jsonData = JSON.stringify(products, null, 2);
+//   fs.writeFileSync("matcha.json", jsonData, "utf8");
+//   console.log("Products data has been saved to matcha.json");
+// }
 
 // Uncomment this to update matcha list
 // saveProductsToFile();
