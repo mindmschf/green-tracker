@@ -25,14 +25,22 @@ const HEADERS = {
 };
 
 // To prevent spamming too much if the in-stock doesn't change between checks
-let previousInStockProducts: Set<string> = new Set();
+const STOCK_FILE = path.join(__dirname, "previous_stock.json");
 
-function setsAreEqual(set1: Set<string>, set2: Set<string>): boolean {
-  if (set1.size !== set2.size) return false;
-  for (let item of set1) {
-    if (!set2.has(item)) return false;
+function readPreviousStock(): Set<string> {
+  if (fs.existsSync(STOCK_FILE)) {
+    try {
+      const data = JSON.parse(fs.readFileSync(STOCK_FILE, "utf8"));
+      return new Set(data);
+    } catch (error) {
+      console.error("Error parsing previous stock file:", error);
+    }
   }
-  return true;
+  return new Set();
+}
+
+function savePreviousStock(stock: Set<string>) {
+  fs.writeFileSync(STOCK_FILE, JSON.stringify(Array.from(stock)), "utf8");
 }
 
 function readProductsFromFile(): { manufacturer: string; name: string; url: string }[] | null {
@@ -114,13 +122,14 @@ async function sendGroupedTelegramMessage(
 ) {
   if (productsInStock.length > 0) {
     const currentProductUrls = new Set(productsInStock.map((product) => product.url));
+    const previousInStockProducts = readPreviousStock();
 
-    if (setsAreEqual(previousInStockProducts, currentProductUrls)) {
-      console.log("No change in the list of in-stock products. Skipping message.");
+    if (previousInStockProducts.size === currentProductUrls.size && [...previousInStockProducts].every((url) => currentProductUrls.has(url))) {
+      console.log("No change in stock. Skipping message.");
       return;
     }
 
-    previousInStockProducts = currentProductUrls;
+    savePreviousStock(currentProductUrls);
 
     const productList = productsInStock
       .map((product, index) => `${index + 1}. <a href="${product.url}">${product.manufacturer} - ${product.name}</a>`)
@@ -181,9 +190,6 @@ async function main() {
 
 // Uncomment this to update matcha list
 // saveProductsToFile();
-
-// const interval = 300000; // 5 minutes interval
-// setInterval(main, interval);
 
 (async () => {
   console.log("Running bot script...");
