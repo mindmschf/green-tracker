@@ -185,7 +185,7 @@ async function main() {
   }
 }
 
-// NOTE: THIS WILL REMOVE/REPLACE PREVIOUSLY SAVED ITEMS
+// NOTE: THIS WILL REMOVE/REPLACE PREVIOUSLY SAVED ITEMS. DO NOT RUN UNLESS NEEDED
 // async function saveProductsToFile() {
 //   const products = await fetchProductLinks();
 //   const jsonData = JSON.stringify(products, null, 2);
