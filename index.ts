@@ -135,9 +135,9 @@ async function sendGroupedTelegramMessage(
     const message = `<b>${timestamp}</b>\n\nThe following matcha is back in stock:\n${productList}`;
 
     console.log(message);
-    await bot.telegram.sendMessage(TELEGRAM_CHAT_ID, message, {
-      parse_mode: "HTML",
-    });
+    // await bot.telegram.sendMessage(TELEGRAM_CHAT_ID, message, {
+    //   parse_mode: "HTML",
+    // });
   }
 }
 
