@@ -153,7 +153,6 @@ async function main() {
 
   console.log("main called", timestamp, jstHour);
 
-  if (jstHour >= 7 && jstHour < 23) {
     const products = await readProductsFromFile();
     const productsInStock: {
       manufacturer: string;
@@ -179,10 +178,6 @@ async function main() {
       console.log("No products in stock.");
       return;
     }
-  } else {
-    console.log("Outside of operation hours (7 AM - 11 PM JST). Skipping check.");
-    return;
-  }
 }
 
 // NOTE: THIS WILL REMOVE/REPLACE PREVIOUSLY SAVED ITEMS. DO NOT RUN UNLESS NEEDED
