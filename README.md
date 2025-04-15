@@ -8,7 +8,7 @@ currently powered by github actions as a cron job
 
 - [ ] implement scraping/checking for the following sites
 
-  - [ ] ippodo
+  - [x] ippodo
   - [ ] nakamura tokichi
 
 - [ ] explore alternative hosting options
