@@ -261,15 +261,15 @@ async function main() {
 //   process.exit(0); // Ensure the script exits after running
 // })();
 
-// (async () => {
-//   console.log("Running bot script...");
-//   await main();
-//   console.log("Script execution completed.");
-//   process.exit(0); // Ensure the script exits after running
-// })();
+ (async () => {
+   console.log("Running bot script...");
+   await main();
+   console.log("Script execution completed.");
+   process.exit(0); // Ensure the script exits after running
+ })();
 
-export async function handler() {
-  console.log("Running bot script...");
-  await main();
-  console.log("Script execution completed.");
-}
+//export async function handler() {
+  //console.log("Running bot script...");
+  //await main();
+ // console.log("Script execution completed.");
+//}
