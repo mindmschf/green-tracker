@@ -2,8 +2,8 @@ name: Run Telegram Bot on Schedule
 
 on:
   schedule:
-    - cron: "0 23 * * *" # Runs every 10 minutes, from UTC 12AM - 1PM (JST 9AM - 10PM), Mon - Fri
-  workflow_dispatch: # Allows manual trigger
+    - cron: "0 23 * * *" # Runs at 2300 UTC time
+  workflow_dispatch: # Allows manual trigger from cloudflare
 
 jobs:
   run-bot:
