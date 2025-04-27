@@ -6,9 +6,11 @@ currently powered by github actions as a cron job
 
 ### todo/enhancements
 
-- [ ] implement scraping/checking for the following sites
+- [ ] implement scraping/checking for the following sites:
 
   - [x] ippodo
   - [ ] nakamura tokichi
 
-- [ ] explore alternative hosting options
+- [x] explore alternative hosting options
+
+  - [x] using cloudflare worker to trigger cron jobs

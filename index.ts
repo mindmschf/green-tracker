@@ -30,6 +30,15 @@ const WEBSITES = {
     inventoryFile: "ippodo-matcha.json",
     categoryUrls: ["https://global.ippodo-tea.co.jp/collections/matcha"],
   },
+  NAKAMURA_TOKICHI: {
+    name: "Nakamura Tokichi",
+    shouldRefetch: true,
+    inventoryFile: "nakamura-matcha.json",
+    categoryUrls: [
+      "https://global.tokichi.jp/collections/matcha?page=1&sort_by=price-ascending",
+      "https://global.tokichi.jp/collections/matcha?page=2&sort_by=price-ascending",
+    ],
+  },
 };
 
 type WebsiteKey = keyof typeof WEBSITES;
@@ -42,12 +51,18 @@ const HEADERS = {
 };
 
 // To prevent spamming too much if the in-stock doesn't change between checks
-const STOCK_FILE = path.join(__dirname, "previous_stock.json");
+const STOCK_FILE = path.join(__dirname, "previous-stock.json");
 // website, urls
 type WebsiteStockMap = Record<WebsiteKey, string[]>;
 
 function readPreviousStock(): WebsiteStockMap {
-  return fs.existsSync(STOCK_FILE) ? JSON.parse(fs.readFileSync(STOCK_FILE, "utf8")) : { SAZEN: [], IPPODO: [] };
+  return fs.existsSync(STOCK_FILE)
+    ? JSON.parse(fs.readFileSync(STOCK_FILE, "utf8"))
+    : {
+        SAZEN: [],
+        IPPODO: [],
+        NAKAMURA_TOKICHI: [],
+      };
 }
 
 function savePreviousStock(stockMap: WebsiteStockMap) {
@@ -62,7 +77,8 @@ function readProductsFromFile(
     const data = fs.readFileSync(filePath, "utf8");
     return JSON.parse(data);
   } else {
-    console.log(`${inventoryFile} file not found.`);
+    console.log(`${inventoryFile} file not found. Creating a new file.`);
+    fs.writeFileSync(filePath, "[]", "utf8");
     return [];
   }
 }
@@ -141,6 +157,37 @@ async function updateProductLinks() {
       console.error("Error fetching Ippodo page: ", error);
     }
   }
+
+  // Nakamura
+  if (WEBSITES.NAKAMURA_TOKICHI.shouldRefetch) {
+    // url, product name
+    const products = new Map<string, string>();
+    try {
+      const response = await axios.get(WEBSITES.NAKAMURA_TOKICHI.categoryUrls[0], { headers: HEADERS });
+      const $ = cheerio.load(response.data);
+
+      // 1. Select links inside <div class="card__information">
+      $("div.card__information").each((_, element) => {
+        const link = $(element).find("a").attr("href");
+        const name = $(element).find("h3.tatata.card__heading").text().trim();
+        const url = "https://global.tokichi.jp" + link;
+        products.set(url, name);
+      });
+
+      // Update products link file
+      const manufacturer = WEBSITES.NAKAMURA_TOKICHI.name;
+      const mapped = Array.from(products.entries()).map(([url, name]) => ({
+        website: "NAKAMURA",
+        manufacturer,
+        name,
+        url,
+      }));
+      const jsonData = JSON.stringify(mapped, null, 2);
+      fs.writeFileSync(WEBSITES.NAKAMURA_TOKICHI.inventoryFile, jsonData, "utf8");
+    } catch (error) {
+      console.error("Error fetching Nakamura Tokichi page: ", error);
+    }
+  }
 }
 
 async function checkStockStatus(product: {
@@ -178,6 +225,19 @@ async function checkStockStatus(product: {
       console.error(`Error fetching product page (${product.url}):`, error);
       return false;
     }
+  } else if (product.website === "NAKAMURA_TOKICHI") {
+    try {
+      const response = await axios.get(product.url, { headers: HEADERS });
+      const $ = cheerio.load(response.data);
+
+      // Get submit button span text inside product-form__buttons
+      const buttonText = $("div.product-form__buttons button span").text().trim();
+
+      return buttonText === "Add to cart";
+    } catch (error) {
+      console.error(`Error fetching product page (${product.url}):`, error);
+      return false;
+    }
   }
   return false;
 }
@@ -192,7 +252,8 @@ async function sendGroupedTelegramMessage(
       .map((product, index) => `${index + 1}. <a href="${product.url}">${product.manufacturer} - ${product.name}</a>`)
       .join("\n");
 
-    const message = `<b>${timestamp}</b>\n\nThe following matcha is back in stock on <b><u>${websiteKey}</u></b>:\n${productList}`;
+    const website = WEBSITES[websiteKey].name;
+    const message = `<b>${timestamp}</b>\n\n<b><u>${website}</u></b> stock update:\n${productList}`;
 
     console.log(message);
     await bot.telegram.sendMessage(TELEGRAM_CHAT_ID, message, {
@@ -212,10 +273,18 @@ async function main() {
   console.log("main called", timestamp, jstHour);
 
   const previousStockMap = readPreviousStock();
-  const currentStockMap: WebsiteStockMap = { SAZEN: [], IPPODO: [] };
+  const currentStockMap: WebsiteStockMap = {
+    SAZEN: [],
+    IPPODO: [],
+    NAKAMURA_TOKICHI: [],
+  };
   const inStockProducts: {
     [K in WebsiteKey]: { manufacturer: string; name: string; url: string }[];
-  } = { SAZEN: [], IPPODO: [] };
+  } = {
+    SAZEN: [],
+    IPPODO: [],
+    NAKAMURA_TOKICHI: [],
+  };
 
   for (const websiteKey of Object.keys(WEBSITES) as WebsiteKey[]) {
     const website = WEBSITES[websiteKey];
@@ -261,15 +330,9 @@ async function main() {
 //   process.exit(0); // Ensure the script exits after running
 // })();
 
- (async () => {
-   console.log("Running bot script...");
-   await main();
-   console.log("Script execution completed.");
-   process.exit(0); // Ensure the script exits after running
- })();
-
-//export async function handler() {
-  //console.log("Running bot script...");
-  //await main();
- // console.log("Script execution completed.");
-//}
+(async () => {
+  console.log("Running bot script...");
+  await main();
+  console.log("Script execution completed.");
+  process.exit(0); // Ensure the script exits after running
+})();
