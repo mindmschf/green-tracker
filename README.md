@@ -9,7 +9,8 @@ currently powered by github actions as a cron job
 - [ ] implement scraping/checking for the following sites:
 
   - [x] ippodo
-  - [ ] nakamura tokichi
+  - [x] nakamura tokichi
+  - [ ] horii shichimeien?
 
 - [x] explore alternative hosting options
 
