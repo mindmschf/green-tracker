@@ -118,6 +118,23 @@ async function sendGroupedTelegramMessage(
   }
 }
 
+async function sendOneTimeUpdateMessage() {
+  const now = new Date();
+  const timestamp = now.toLocaleString("en-GB", {
+    dateStyle: "full",
+    timeStyle: undefined,
+    timeZone: "Asia/Singapore",
+  });
+
+  const changelog = `1. Add <a href="https://global.ippodo-tea.co.jp/collections/matcha">Ippodo Tea</a> and <a href="https://global.tokichi.jp/collections/matcha">Nakamura Tokichi</a> to list of websites to check.\n2. Use <a href="https://workers.cloudflare.com/">Cloudflare Workers</a> to trigger a manual Github Action run every 10 minutes.`;
+  const message = `<b>${timestamp}</b>\n\n<b><u>New updates to the bot! 🥳</u></b>\n\n${changelog}`;
+
+  console.log(message);
+  await bot.telegram.sendMessage(TELEGRAM_CHAT_ID, message, {
+    parse_mode: "HTML",
+  });
+}
+
 async function main() {
   const now = new Date();
   const timestamp = now.toLocaleString("en-GB", {
@@ -184,3 +201,10 @@ async function main() {
   console.log("Script execution completed.");
   process.exit(0); // Ensure the script exits after running
 })();
+
+// (async () => {
+//   console.log("Running bot script (sendOneTimeUpdateMessage)...");
+//   await sendOneTimeUpdateMessage();
+//   console.log("Script execution completed.");
+//   process.exit(0); // Ensure the script exits after running
+// })();

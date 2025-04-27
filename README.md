@@ -15,3 +15,5 @@ currently powered by github actions as a cron job
 - [x] explore alternative hosting options
 
   - [x] using cloudflare worker to trigger cron jobs
+
+- [ ] explore a slightly more robust database solution
