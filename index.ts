@@ -4,51 +4,14 @@ import * as cheerio from "cheerio";
 import { Telegraf } from "telegraf";
 import * as fs from "fs";
 import * as path from "path";
+import { HEADERS, WebsiteKey, WEBSITES } from "./constants";
 
 config();
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN!;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID!;
 
-const WEBSITES = {
-  SAZEN: {
-    name: "Sazen Tea",
-    shouldRefetch: false,
-    inventoryFile: "sazen-matcha.json",
-    categoryUrls: [
-      "https://www.sazentea.com/en/products/c85-yamamasa-koyamaen-matcha",
-      "https://www.sazentea.com/en/products/c24-marukyu-koyamaen-matcha",
-      "https://www.sazentea.com/en/products/c114-kanbayashi-shunsho-matcha",
-      "https://www.sazentea.com/en/products/c25-hekisuien-matcha",
-      "https://www.sazentea.com/en/products/c41-horii-shichimeien-matcha",
-      "https://www.sazentea.com/en/products/c26-hokoen-matcha",
-    ],
-  },
-  IPPODO: {
-    name: "Ippodo Tea",
-    shouldRefetch: false,
-    inventoryFile: "ippodo-matcha.json",
-    categoryUrls: ["https://global.ippodo-tea.co.jp/collections/matcha"],
-  },
-  NAKAMURA_TOKICHI: {
-    name: "Nakamura Tokichi",
-    shouldRefetch: true,
-    inventoryFile: "nakamura-matcha.json",
-    categoryUrls: [
-      "https://global.tokichi.jp/collections/matcha?page=1&sort_by=price-ascending",
-      "https://global.tokichi.jp/collections/matcha?page=2&sort_by=price-ascending",
-    ],
-  },
-};
-
-type WebsiteKey = keyof typeof WEBSITES;
-
 const bot = new Telegraf(TELEGRAM_BOT_TOKEN);
-
-const HEADERS = {
-  "User-Agent":
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-};
 
 // To prevent spamming too much if the in-stock doesn't change between checks
 const STOCK_FILE = path.join(__dirname, "previous-stock.json");
@@ -80,113 +43,6 @@ function readProductsFromFile(
     console.log(`${inventoryFile} file not found. Creating a new file.`);
     fs.writeFileSync(filePath, "[]", "utf8");
     return [];
-  }
-}
-
-async function updateProductLinks() {
-  // Sazen
-  if (WEBSITES.SAZEN.shouldRefetch) {
-    const products = new Map<string, { manufacturer: string; name: string }>();
-
-    for (const categoryUrl of WEBSITES.SAZEN.categoryUrls) {
-      try {
-        const response = await axios.get(categoryUrl, { headers: HEADERS });
-        const $ = cheerio.load(response.data);
-
-        // 0. Get manufacturer name (h1 tag)
-        const manufacturer = $("div#content h1").first().text().trim();
-
-        // 1. Select links inside <div class="product-name">
-        $('div.product-name a[href^="/en/products/"]').each((_, element) => {
-          const name = $(element).text().trim();
-          const url = "https://www.sazentea.com" + $(element).attr("href");
-          products.set(url, { manufacturer, name });
-        });
-
-        // 2. Select the second column <td> in each row <tr>
-        $("tr").each((_, row) => {
-          const secondColumn = $(row).find('td:nth-child(2) a[href^="/en/products/"]');
-          if (secondColumn.length > 0) {
-            const name = secondColumn.text().trim();
-            const url = "https://www.sazentea.com" + secondColumn.attr("href");
-            products.set(url, { manufacturer, name });
-          }
-        });
-
-        // Update products link file
-        const mapped = Array.from(products.entries()).map(([url, { manufacturer, name }]) => ({
-          website: "SAZEN",
-          manufacturer,
-          name,
-          url,
-        }));
-        const jsonData = JSON.stringify(mapped, null, 2);
-        fs.writeFileSync(WEBSITES.SAZEN.inventoryFile, jsonData, "utf8");
-      } catch (error) {
-        console.error("Error fetching category page: ", categoryUrl, error);
-      }
-    }
-  }
-
-  // Ippodo
-  if (WEBSITES.IPPODO.shouldRefetch) {
-    // url, product name
-    const products = new Map<string, string>();
-    try {
-      const response = await axios.get(WEBSITES.IPPODO.categoryUrls[0], { headers: HEADERS });
-      const $ = cheerio.load(response.data);
-
-      // 1. Select links inside <a class="a-link-product--type01">
-      $("a.a-link-product--type01").each((_, element) => {
-        const name = $(element).text().trim();
-        const url = "https://global.ippodo-tea.co.jp" + $(element).attr("href");
-        products.set(url, name);
-      });
-
-      // Update products link file
-      const manufacturer = WEBSITES.IPPODO.name;
-      const mapped = Array.from(products.entries()).map(([url, name]) => ({
-        website: "IPPODO",
-        manufacturer,
-        name,
-        url,
-      }));
-      const jsonData = JSON.stringify(mapped, null, 2);
-      fs.writeFileSync(WEBSITES.IPPODO.inventoryFile, jsonData, "utf8");
-    } catch (error) {
-      console.error("Error fetching Ippodo page: ", error);
-    }
-  }
-
-  // Nakamura
-  if (WEBSITES.NAKAMURA_TOKICHI.shouldRefetch) {
-    // url, product name
-    const products = new Map<string, string>();
-    try {
-      const response = await axios.get(WEBSITES.NAKAMURA_TOKICHI.categoryUrls[0], { headers: HEADERS });
-      const $ = cheerio.load(response.data);
-
-      // 1. Select links inside <div class="card__information">
-      $("div.card__information").each((_, element) => {
-        const link = $(element).find("a").attr("href");
-        const name = $(element).find("h3.tatata.card__heading").text().trim();
-        const url = "https://global.tokichi.jp" + link;
-        products.set(url, name);
-      });
-
-      // Update products link file
-      const manufacturer = WEBSITES.NAKAMURA_TOKICHI.name;
-      const mapped = Array.from(products.entries()).map(([url, name]) => ({
-        website: "NAKAMURA",
-        manufacturer,
-        name,
-        url,
-      }));
-      const jsonData = JSON.stringify(mapped, null, 2);
-      fs.writeFileSync(WEBSITES.NAKAMURA_TOKICHI.inventoryFile, jsonData, "utf8");
-    } catch (error) {
-      console.error("Error fetching Nakamura Tokichi page: ", error);
-    }
   }
 }
 
@@ -321,14 +177,6 @@ async function main() {
     }
   }
 }
-
-// NOTE: THIS WILL REMOVE/REPLACE PREVIOUSLY SAVED ITEMS. DO NOT RUN UNLESS NEEDED
-// (async () => {
-//   console.log("Updating inventory...");
-//   await updateProductLinks();
-//   console.log("Inventory updated.");
-//   process.exit(0); // Ensure the script exits after running
-// })();
 
 (async () => {
   console.log("Running bot script...");

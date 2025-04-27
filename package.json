@@ -2,7 +2,8 @@
   "name": "sazen-tracker",
   "version": "1.0.0",
   "scripts": {
-    "start": "ts-node index.ts"
+    "start": "ts-node index.ts",
+    "update-products": "ts-node update-products.ts"
   },
   "dependencies": {
     "axios": "^1.7.9",
