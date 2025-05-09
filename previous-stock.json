@@ -1,15 +1,10 @@
 {
-  "SAZEN": [
-    "https://www.sazentea.com/en/products/p826-matcha-matsukaze.html"
-  ],
+  "SAZEN": [],
   "IPPODO": [
-    "https://global.ippodo-tea.co.jp/collections/matcha/products/matcha387424",
-    "https://global.ippodo-tea.co.jp/collections/matcha/products/matcha109643",
     "https://global.ippodo-tea.co.jp/collections/matcha/products/matcha111102",
     "https://global.ippodo-tea.co.jp/collections/matcha/products/matcha642402"
   ],
   "NAKAMURA_TOKICHI": [
-    "https://global.tokichi.jp/products/mc10",
-    "https://global.tokichi.jp/products/mc11"
+    "https://global.tokichi.jp/products/mc10"
   ]
 }
