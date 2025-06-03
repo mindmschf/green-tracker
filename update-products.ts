@@ -3,8 +3,20 @@ import axios from "axios";
 import * as cheerio from "cheerio";
 import * as fs from "fs";
 import { WEBSITES, HEADERS } from "./constants";
+import { CookieJar } from "tough-cookie";
+import { wrapper } from "axios-cookiejar-support";
 
 config();
+
+// Accept and store cookies to prevent sites from blocking too many requests
+const jar = new CookieJar();
+const client = wrapper(
+  axios.create({
+    jar,
+    withCredentials: true, // Ensures cookies are included
+    headers: HEADERS,
+  })
+);
 
 async function updateProductLinks() {
   // Sazen
@@ -13,7 +25,7 @@ async function updateProductLinks() {
 
     for (const categoryUrl of WEBSITES.SAZEN.categoryUrls) {
       try {
-        const response = await axios.get(categoryUrl, { headers: HEADERS });
+        const response = await client.get(categoryUrl);
         const $ = cheerio.load(response.data);
 
         // 0. Get manufacturer name (h1 tag)
@@ -56,7 +68,7 @@ async function updateProductLinks() {
     // url, product name
     const products = new Map<string, string>();
     try {
-      const response = await axios.get(WEBSITES.IPPODO.categoryUrls[0], { headers: HEADERS });
+      const response = await client.get(WEBSITES.IPPODO.categoryUrls[0]);
       const $ = cheerio.load(response.data);
 
       // 1. Select links inside <a class="a-link-product--type01">
@@ -87,7 +99,7 @@ async function updateProductLinks() {
     const products = new Map<string, string>();
     for (const categoryUrl of WEBSITES.NAKAMURA_TOKICHI.categoryUrls) {
       try {
-        const response = await axios.get(categoryUrl, { headers: HEADERS });
+        const response = await client.get(categoryUrl);
         const $ = cheerio.load(response.data);
 
         // 1. Select links inside <div class="card__information">

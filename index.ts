@@ -5,6 +5,8 @@ import { Telegraf } from "telegraf";
 import * as fs from "fs";
 import * as path from "path";
 import { HEADERS, WebsiteKey, WEBSITES } from "./constants";
+import { CookieJar } from "tough-cookie";
+import { wrapper } from "axios-cookiejar-support";
 
 config();
 
@@ -12,6 +14,16 @@ const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN!;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID!;
 
 const bot = new Telegraf(TELEGRAM_BOT_TOKEN);
+
+// Accept and store cookies to prevent sites from blocking too many requests
+const jar = new CookieJar();
+const client = wrapper(
+  axios.create({
+    jar,
+    withCredentials: true, // Ensures cookies are included
+    headers: HEADERS,
+  })
+);
 
 // To prevent spamming too much if the in-stock doesn't change between checks
 const STOCK_FILE = path.join(__dirname, "previous-stock.json");
@@ -52,8 +64,8 @@ async function checkStockStatus(product: {
   name: string;
   url: string;
 }): Promise<boolean> {
-  return await axios
-    .get(product.url, { headers: HEADERS })
+  return await client
+    .get(product.url)
     .then((response) => {
       if (response.status >= 200 && response.status < 400) {
         const $ = cheerio.load(response.data);
