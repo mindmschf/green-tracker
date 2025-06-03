@@ -52,50 +52,36 @@ async function checkStockStatus(product: {
   name: string;
   url: string;
 }): Promise<boolean> {
-  if (product.website === "SAZEN") {
-    try {
-      const response = await axios.get(product.url, { headers: HEADERS });
+  return await axios
+    .get(product.url, { headers: HEADERS })
+    .then((response) => {
       const $ = cheerio.load(response.data);
 
-      const outOfStockText = $("p strong.red").text().trim();
-      const inStockForm = $("form#basket-add");
+      if (product.website === "SAZEN") {
+        const outOfStockText = $("p strong.red").text().trim();
+        const inStockForm = $("form#basket-add");
 
-      return !outOfStockText.includes("This product is unavailable") && inStockForm.length > 0;
-    } catch (error) {
+        return !outOfStockText.includes("This product is unavailable") && inStockForm.length > 0;
+      } else if (product.website === "IPPODO") {
+        // Look for any button inside .product-form__buttons without style="display: none"
+        const visibleAddToCartButton = $(".product-form__buttons button").filter((_, el) => {
+          const style = $(el).attr("style") || "";
+          return !style.includes("display: none");
+        });
+
+        return visibleAddToCartButton.length > 0;
+      } else if (product.website === "NAKAMURA_TOKICHI") {
+        // Get submit button span text inside product-form__buttons
+        const buttonText = $("div.product-form__buttons button span").text().trim();
+
+        return buttonText === "Add to cart";
+      }
+      return false;
+    })
+    .catch((error) => {
       console.error(`Error fetching product page (${product.url}):`, error);
       return false;
-    }
-  } else if (product.website === "IPPODO") {
-    try {
-      const response = await axios.get(product.url, { headers: HEADERS });
-      const $ = cheerio.load(response.data);
-
-      // Look for any button inside .product-form__buttons without style="display: none"
-      const visibleAddToCartButton = $(".product-form__buttons button").filter((_, el) => {
-        const style = $(el).attr("style") || "";
-        return !style.includes("display: none");
-      });
-
-      return visibleAddToCartButton.length > 0;
-    } catch (error) {
-      console.error(`Error fetching product page (${product.url}):`, error);
-      return false;
-    }
-  } else if (product.website === "NAKAMURA_TOKICHI") {
-    try {
-      const response = await axios.get(product.url, { headers: HEADERS });
-      const $ = cheerio.load(response.data);
-
-      // Get submit button span text inside product-form__buttons
-      const buttonText = $("div.product-form__buttons button span").text().trim();
-
-      return buttonText === "Add to cart";
-    } catch (error) {
-      console.error(`Error fetching product page (${product.url}):`, error);
-      return false;
-    }
-  }
-  return false;
+    });
 }
 
 async function sendGroupedTelegramMessage(
