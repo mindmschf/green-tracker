@@ -2,12 +2,15 @@
   "SAZEN": [
     "https://www.sazentea.com/en/products/p200-matcha-hatsumukashi.html",
     "https://www.sazentea.com/en/products/p202-matcha-ryokuhou.html",
-    "https://www.sazentea.com/en/products/p206-matcha-myouju.html",
-    "https://www.sazentea.com/en/products/p828-matcha-unryu.html"
+    "https://www.sazentea.com/en/products/p206-matcha-myouju.html"
   ],
   "IPPODO": [
     "https://global.ippodo-tea.co.jp/collections/matcha/products/matcha387424",
-    "https://global.ippodo-tea.co.jp/collections/matcha/products/matcha125510"
+    "https://global.ippodo-tea.co.jp/collections/matcha/products/matcha125510",
+    "https://global.ippodo-tea.co.jp/collections/matcha/products/matcha111102",
+    "https://global.ippodo-tea.co.jp/collections/matcha/products/matcha642402"
   ],
-  "NAKAMURA_TOKICHI": []
+  "NAKAMURA_TOKICHI": [
+    "https://global.tokichi.jp/products/mc11"
+  ]
 }
