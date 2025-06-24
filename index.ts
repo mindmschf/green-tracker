@@ -136,6 +136,21 @@ async function sendOneTimeUpdateMessage() {
   });
 }
 
+async function generatePrefilledCartLink() {
+  const now = new Date();
+  const timestamp = now.toLocaleString("en-GB", {
+    dateStyle: "full",
+    timeStyle: undefined,
+    timeZone: "Asia/Singapore",
+  });
+
+  const link = `https://global.ippodo-tea.co.jp/cart/40615348994199:1,40615347028119:1,40615348371607:1,40615348404375:1,43049706684567:1,40615348207767:1,40615347093655:1,43049746202775:1,40615348600983:1,40615349059735:1`
+
+  const message = `<b>${timestamp}</b>\n\n<b><u>Faster add to cart for Ippodo Tea! 🏃‍♂️💨</u></b>\n\n${link}`;
+
+  console.log(message);
+}
+
 async function main() {
   const now = new Date();
   const timestamp = now.toLocaleString("en-GB", {

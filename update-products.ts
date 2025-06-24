@@ -65,27 +65,19 @@ async function updateProductLinks() {
 
   // Ippodo
   if (WEBSITES.IPPODO.shouldRefetch) {
-    // url, product name
-    const products = new Map<string, string>();
     try {
-      const response = await client.get(WEBSITES.IPPODO.categoryUrls[0]);
-      const $ = cheerio.load(response.data);
-
-      // 1. Select links inside <a class="a-link-product--type01">
-      $("a.a-link-product--type01").each((_, element) => {
-        const name = $(element).text().trim();
-        const url = "https://global.ippodo-tea.co.jp" + $(element).attr("href");
-        products.set(url, name);
-      });
-
+      const response = (await client.get(WEBSITES.IPPODO.productsJson[0])).data.products;
+      
       // Update products link file
       const manufacturer = WEBSITES.IPPODO.name;
-      const mapped = Array.from(products.entries()).map(([url, name]) => ({
+      const mapped = response.map((p: any) => ({
         website: "IPPODO",
         manufacturer,
-        name,
-        url,
-      }));
+        name: p.title,
+        url: "https://global.ippodo-tea.co.jp/collections/matcha/products/" + p.handle,
+        variantId: p.variants[0].id
+      }))
+
       const jsonData = JSON.stringify(mapped, null, 2);
       fs.writeFileSync(WEBSITES.IPPODO.inventoryFile, jsonData, "utf8");
     } catch (error) {
@@ -95,36 +87,22 @@ async function updateProductLinks() {
 
   // Nakamura
   if (WEBSITES.NAKAMURA_TOKICHI.shouldRefetch) {
-    // url, product name
-    const products = new Map<string, string>();
-    for (const categoryUrl of WEBSITES.NAKAMURA_TOKICHI.categoryUrls) {
-      try {
-        const response = await client.get(categoryUrl);
-        const $ = cheerio.load(response.data);
-
-        // 1. Select links inside <div class="card__information">
-        $("div.card__information").each((_, element) => {
-          const link = $(element).find("a").attr("href");
-          const name = $(element).find("h3.tatata.card__heading").text().trim();
-          if (link && name) {
-            const url = "https://global.tokichi.jp" + link;
-            products.set(url, name);
-          }
-        });
-
-        // Update products link file
-        const manufacturer = WEBSITES.NAKAMURA_TOKICHI.name;
-        const mapped = Array.from(products.entries()).map(([url, name]) => ({
-          website: "NAKAMURA_TOKICHI",
-          manufacturer,
-          name,
-          url,
-        }));
-        const jsonData = JSON.stringify(mapped, null, 2);
-        fs.writeFileSync(WEBSITES.NAKAMURA_TOKICHI.inventoryFile, jsonData, "utf8");
-      } catch (error) {
-        console.error("Error fetching Nakamura Tokichi page: ", error);
-      }
+    try {
+      const response = (await client.get(WEBSITES.NAKAMURA_TOKICHI.productsJson[0])).data.products;
+      
+      // Update products link file
+      const manufacturer = WEBSITES.NAKAMURA_TOKICHI.name;
+      const mapped = response.map((p: any) => ({
+        website: "NAKAMURA_TOKICHI",
+        manufacturer,
+        name: p.title,
+        url: "https://global.tokichi.jp/products/" + p.handle,
+        variantId: p.variants[0].id
+      }));
+      const jsonData = JSON.stringify(mapped, null, 2);
+      fs.writeFileSync(WEBSITES.NAKAMURA_TOKICHI.inventoryFile, jsonData, "utf8");
+    } catch (error) {
+      console.error("Error fetching Nakamura Tokichi page: ", error);
     }
   }
 }

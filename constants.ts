@@ -16,16 +16,13 @@ export const WEBSITES = {
     name: "Ippodo Tea",
     shouldRefetch: false,
     inventoryFile: "ippodo-matcha.json",
-    categoryUrls: ["https://global.ippodo-tea.co.jp/collections/matcha"],
+    productsJson: ["https://global.ippodo-tea.co.jp/collections/matcha/products.json"],
   },
   NAKAMURA_TOKICHI: {
     name: "Nakamura Tokichi",
     shouldRefetch: false,
     inventoryFile: "nakamura-matcha.json",
-    categoryUrls: [
-      "https://global.tokichi.jp/collections/matcha?page=1&sort_by=price-ascending",
-      "https://global.tokichi.jp/collections/matcha?page=2&sort_by=price-ascending",
-    ],
+    productsJson: ["https://global.tokichi.jp/collections/matcha/products.json"],
   },
 } as const;
 
