@@ -5,7 +5,6 @@
     "https://www.sazentea.com/en/products/p1592-koicha-babamukashi.html",
     "https://www.sazentea.com/en/products/p1593-koicha-hijirimukashi.html",
     "https://www.sazentea.com/en/products/p1594-koicha-sazumimukashi.html",
-    "https://www.sazentea.com/en/products/p1595-koicha-zuihou.html",
     "https://www.sazentea.com/en/products/p1597-usucha-gokumukashi.html",
     "https://www.sazentea.com/en/products/p1598-usucha-konomi-no-shiro.html",
     "https://www.sazentea.com/en/products/p1599-usucha-yuzuriha-mukashi.html",
@@ -29,7 +28,17 @@
   ],
   "IPPODO": [
     "https://global.ippodo-tea.co.jp/collections/matcha/products/matcha125510",
-    "https://global.ippodo-tea.co.jp/collections/matcha/products/matcha111102"
+    "https://global.ippodo-tea.co.jp/collections/matcha/products/matcha111102",
+    "https://global.ippodo-tea.co.jp/collections/matcha/products/matcha642402"
   ],
-  "NAKAMURA_TOKICHI": []
+  "NAKAMURA_TOKICHI": [
+    "https://global.tokichi.jp/products/m100-str",
+    "https://global.tokichi.jp/products/m100-std",
+    "https://global.tokichi.jp/products/mc2",
+    "https://global.tokichi.jp/products/mc11",
+    "https://global.tokichi.jp/products/mc10",
+    "https://global.tokichi.jp/products/mc9",
+    "https://global.tokichi.jp/products/mc8",
+    "https://global.tokichi.jp/products/mc5"
+  ]
 }
