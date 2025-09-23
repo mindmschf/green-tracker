@@ -1,16 +1,15 @@
-# matcha tracker
+# green powder (legal) tracker
 
-a simple telegram bot to help check for matcha stock
+a simple telegram bot to help send alerts when products are back in stock
 
 currently powered by github actions as a cron job
 
 ### todo/enhancements
 
-- [ ] implement scraping/checking for the following sites:
+- [x] implement scraping/checking for the following sites:
 
-  - [x] ippodo
-  - [x] nakamura tokichi
-  - [ ] horii shichimeien?
+  - [x] !pp0d0
+  - [x] n@kamur@ t0k!ch!
 
 - [x] explore alternative hosting options
 
