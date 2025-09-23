@@ -1,12 +1,12 @@
-import { config } from "dotenv";
-import axios from "axios";
-import * as cheerio from "cheerio";
-import { Telegraf } from "telegraf";
-import * as fs from "fs";
-import * as path from "path";
-import { HEADERS, WebsiteKey, WEBSITES } from "./constants";
-import { CookieJar } from "tough-cookie";
-import { wrapper } from "axios-cookiejar-support";
+import { config } from 'dotenv';
+import axios from 'axios';
+import * as cheerio from 'cheerio';
+import { Telegraf } from 'telegraf';
+import * as fs from 'fs';
+import * as path from 'path';
+import { HEADERS, WebsiteKey, WEBSITES } from './constants';
+import { CookieJar } from 'tough-cookie';
+import { wrapper } from 'axios-cookiejar-support';
 
 config();
 
@@ -26,13 +26,13 @@ const client = wrapper(
 );
 
 // To prevent spamming too much if the in-stock doesn't change between checks
-const STOCK_FILE = path.join(__dirname, "previous-stock.json");
+const STOCK_FILE = path.join(__dirname, 'previous-stock.json');
 // website, urls
 type WebsiteStockMap = Record<WebsiteKey, string[]>;
 
 function readPreviousStock(): WebsiteStockMap {
   return fs.existsSync(STOCK_FILE)
-    ? JSON.parse(fs.readFileSync(STOCK_FILE, "utf8"))
+    ? JSON.parse(fs.readFileSync(STOCK_FILE, 'utf8'))
     : {
         SAZEN: [],
         IPPODO: [],
@@ -41,7 +41,7 @@ function readPreviousStock(): WebsiteStockMap {
 }
 
 function savePreviousStock(stockMap: WebsiteStockMap) {
-  fs.writeFileSync(STOCK_FILE, JSON.stringify(stockMap, null, 2), "utf8");
+  fs.writeFileSync(STOCK_FILE, JSON.stringify(stockMap, null, 2), 'utf8');
 }
 
 function readProductsFromFile(
@@ -49,11 +49,11 @@ function readProductsFromFile(
 ): { website: WebsiteKey; manufacturer: string; name: string; url: string }[] {
   const filePath = path.join(__dirname, inventoryFile);
   if (fs.existsSync(filePath)) {
-    const data = fs.readFileSync(filePath, "utf8");
+    const data = fs.readFileSync(filePath, 'utf8');
     return JSON.parse(data);
   } else {
     console.log(`${inventoryFile} file not found. Creating a new file.`);
-    fs.writeFileSync(filePath, "[]", "utf8");
+    fs.writeFileSync(filePath, '[]', 'utf8');
     return [];
   }
 }
@@ -70,24 +70,31 @@ async function checkStockStatus(product: {
       if (response.status >= 200 && response.status < 400) {
         const $ = cheerio.load(response.data);
 
-        if (product.website === "SAZEN") {
-          const outOfStockText = $("p strong.red").text().trim();
-          const inStockForm = $("form#basket-add");
+        if (product.website === 'SAZEN') {
+          const outOfStockText = $('p strong.red').text().trim();
+          const inStockForm = $('form#basket-add');
 
-          return !outOfStockText.includes("This product is unavailable") && inStockForm.length > 0;
-        } else if (product.website === "IPPODO") {
+          return (
+            !outOfStockText.includes('This product is unavailable') &&
+            inStockForm.length > 0
+          );
+        } else if (product.website === 'IPPODO') {
           // Look for any button inside .product-form__buttons without style="display: none"
-          const visibleAddToCartButton = $(".product-form__buttons button").filter((_, el) => {
-            const style = $(el).attr("style") || "";
-            return !style.includes("display: none");
+          const visibleAddToCartButton = $(
+            '.product-form__buttons button'
+          ).filter((_, el) => {
+            const style = $(el).attr('style') || '';
+            return !style.includes('display: none');
           });
 
           return visibleAddToCartButton.length > 0;
-        } else if (product.website === "NAKAMURA_TOKICHI") {
+        } else if (product.website === 'NAKAMURA_TOKICHI') {
           // Get submit button span text inside product-form__buttons
-          const buttonText = $("div.product-form__buttons button span").text().trim();
+          const buttonText = $('div.product-form__buttons button span')
+            .text()
+            .trim();
 
-          return buttonText === "Add to cart";
+          return buttonText === 'Add to cart';
         }
       }
 
@@ -104,27 +111,32 @@ async function sendGroupedTelegramMessage(
   productsInStock: { manufacturer: string; name: string; url: string }[],
   timestamp: string
 ) {
-  if (productsInStock.length > 0) {
+  if (productsInStock.length > 3) {
     const productList = productsInStock
-      .map((product, index) => `${index + 1}. <a href="${product.url}">${product.manufacturer} - ${product.name}</a>`)
-      .join("\n");
+      .map(
+        (product, index) =>
+          `${index + 1}. <a href="${product.url}">${product.manufacturer} - ${
+            product.name
+          }</a>`
+      )
+      .join('\n');
 
     const website = WEBSITES[websiteKey].name;
     const message = `<b>${timestamp}</b>\n\n<b><u>${website}</u></b> stock update:\n${productList}`;
 
     console.log(message);
     await bot.telegram.sendMessage(TELEGRAM_CHAT_ID, message, {
-      parse_mode: "HTML",
+      parse_mode: 'HTML',
     });
   }
 }
 
 async function sendOneTimeUpdateMessage() {
   const now = new Date();
-  const timestamp = now.toLocaleString("en-GB", {
-    dateStyle: "full",
+  const timestamp = now.toLocaleString('en-GB', {
+    dateStyle: 'full',
     timeStyle: undefined,
-    timeZone: "Asia/Singapore",
+    timeZone: 'Asia/Singapore',
   });
 
   const changelog = `1. Add <a href="https://global.ippodo-tea.co.jp/collections/matcha">Ippodo Tea</a> and <a href="https://global.tokichi.jp/collections/matcha">Nakamura Tokichi</a> to list of websites to check.\n2. Use <a href="https://workers.cloudflare.com/">Cloudflare Workers</a> to trigger a manual Github Action run every 10 minutes.`;
@@ -132,19 +144,19 @@ async function sendOneTimeUpdateMessage() {
 
   console.log(message);
   await bot.telegram.sendMessage(TELEGRAM_CHAT_ID, message, {
-    parse_mode: "HTML",
+    parse_mode: 'HTML',
   });
 }
 
 async function generatePrefilledCartLink() {
   const now = new Date();
-  const timestamp = now.toLocaleString("en-GB", {
-    dateStyle: "full",
+  const timestamp = now.toLocaleString('en-GB', {
+    dateStyle: 'full',
     timeStyle: undefined,
-    timeZone: "Asia/Singapore",
+    timeZone: 'Asia/Singapore',
   });
 
-  const link = `https://global.ippodo-tea.co.jp/cart/40615348994199:1,40615347028119:1,40615348371607:1,40615348404375:1,43049706684567:1,40615348207767:1,40615347093655:1,43049746202775:1,40615348600983:1,40615349059735:1`
+  const link = `https://global.ippodo-tea.co.jp/cart/40615348994199:1,40615347028119:1,40615348371607:1,40615348404375:1,43049706684567:1,40615348207767:1,40615347093655:1,43049746202775:1,40615348600983:1,40615349059735:1`;
 
   const message = `<b>${timestamp}</b>\n\n<b><u>Faster add to cart for Ippodo Tea! 🏃‍♂️💨</u></b>\n\n${link}`;
 
@@ -153,13 +165,13 @@ async function generatePrefilledCartLink() {
 
 async function main() {
   const now = new Date();
-  const timestamp = now.toLocaleString("en-GB", {
-    dateStyle: "full",
-    timeStyle: "long",
-    timeZone: "Asia/Singapore",
+  const timestamp = now.toLocaleString('en-GB', {
+    dateStyle: 'full',
+    timeStyle: 'long',
+    timeZone: 'Asia/Singapore',
   });
   const jstHour = now.getUTCHours() + 9;
-  console.log("main called", timestamp, jstHour);
+  console.log('main called', timestamp, jstHour);
 
   const previousStockMap = readPreviousStock();
   const currentStockMap: WebsiteStockMap = {
@@ -190,8 +202,11 @@ async function main() {
 
     // Check for changes
     const hasChanged =
-      previousStockMap[websiteKey]?.length !== currentStockMap[websiteKey].length ||
-      !previousStockMap[websiteKey]?.every((url) => currentStockMap[websiteKey].includes(url));
+      previousStockMap[websiteKey]?.length !==
+        currentStockMap[websiteKey].length ||
+      !previousStockMap[websiteKey]?.every((url) =>
+        currentStockMap[websiteKey].includes(url)
+      );
 
     if (hasChanged && productsInStock.length > 0) {
       inStockProducts[websiteKey] = productsInStock;
@@ -206,15 +221,19 @@ async function main() {
   // Send messages only for changed websites
   for (const websiteKey of Object.keys(inStockProducts) as WebsiteKey[]) {
     if (inStockProducts[websiteKey].length > 0) {
-      await sendGroupedTelegramMessage(websiteKey, inStockProducts[websiteKey], timestamp);
+      await sendGroupedTelegramMessage(
+        websiteKey,
+        inStockProducts[websiteKey],
+        timestamp
+      );
     }
   }
 }
 
 (async () => {
-  console.log("Running bot script...");
+  console.log('Running bot script...');
   await main();
-  console.log("Script execution completed.");
+  console.log('Script execution completed.');
   process.exit(0); // Ensure the script exits after running
 })();
 
