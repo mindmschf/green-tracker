@@ -101,7 +101,10 @@ async function checkStockStatus(product: {
       return false;
     })
     .catch((error) => {
-      console.error(`Error fetching product page (${product.url}):`, error);
+      console.error(
+        `Error fetching product page ${product.url} (${product.name}):`,
+        error.status
+      );
       return false;
     });
 }
@@ -111,7 +114,7 @@ async function sendGroupedTelegramMessage(
   productsInStock: { manufacturer: string; name: string; url: string }[],
   timestamp: string
 ) {
-  if (productsInStock.length > 3) {
+  if (productsInStock.length) {
     const productList = productsInStock
       .map(
         (product, index) =>
@@ -131,36 +134,60 @@ async function sendGroupedTelegramMessage(
   }
 }
 
-async function sendOneTimeUpdateMessage() {
-  const now = new Date();
-  const timestamp = now.toLocaleString('en-GB', {
-    dateStyle: 'full',
-    timeStyle: undefined,
-    timeZone: 'Asia/Singapore',
-  });
+async function processWebsite(
+  websiteKey: WebsiteKey,
+  previousStockMap: WebsiteStockMap,
+  currentStockMap: WebsiteStockMap
+): Promise<{
+  key: WebsiteKey;
+  products: { manufacturer: string; name: string; url: string }[];
+}> {
+  const website = WEBSITES[websiteKey];
+  const products = readProductsFromFile(website.inventoryFile);
+  const productsInStock: typeof products = [];
 
-  const changelog = `1. Add <a href="https://global.ippodo-tea.co.jp/collections/matcha">Ippodo Tea</a> and <a href="https://global.tokichi.jp/collections/matcha">Nakamura Tokichi</a> to list of websites to check.\n2. Use <a href="https://workers.cloudflare.com/">Cloudflare Workers</a> to trigger a manual Github Action run every 10 minutes.`;
-  const message = `<b>${timestamp}</b>\n\n<b><u>New updates to the bot! 🥳</u></b>\n\n${changelog}`;
+  if (websiteKey === 'SAZEN') {
+    for (const product of products) {
+      const isInStock = await checkStockStatus(product);
+      if (isInStock) {
+        productsInStock.push(product);
+        currentStockMap[websiteKey].push(product.url);
+      }
+    }
+  } else {
+    const results = await Promise.allSettled(
+      products.map(async (product) => {
+        const isInStock = await checkStockStatus(product);
+        return { product, isInStock };
+      })
+    );
 
-  console.log(message);
-  await bot.telegram.sendMessage(TELEGRAM_CHAT_ID, message, {
-    parse_mode: 'HTML',
-  });
-}
+    for (const result of results) {
+      if (result.status === 'fulfilled' && result.value.isInStock) {
+        productsInStock.push(result.value.product);
+        currentStockMap[websiteKey].push(result.value.product.url);
+      } else if (result.status === 'rejected') {
+        console.error('Error checking product:', result.reason);
+      }
+    }
+  }
 
-async function generatePrefilledCartLink() {
-  const now = new Date();
-  const timestamp = now.toLocaleString('en-GB', {
-    dateStyle: 'full',
-    timeStyle: undefined,
-    timeZone: 'Asia/Singapore',
-  });
+  // Check for changes
+  const hasChanged =
+    previousStockMap[websiteKey]?.length !==
+      currentStockMap[websiteKey].length ||
+    !previousStockMap[websiteKey]?.every((url) =>
+      currentStockMap[websiteKey].includes(url)
+    );
 
-  const link = `https://global.ippodo-tea.co.jp/cart/40615348994199:1,40615347028119:1,40615348371607:1,40615348404375:1,43049706684567:1,40615348207767:1,40615347093655:1,43049746202775:1,40615348600983:1,40615349059735:1`;
-
-  const message = `<b>${timestamp}</b>\n\n<b><u>Faster add to cart for Ippodo Tea! 🏃‍♂️💨</u></b>\n\n${link}`;
-
-  console.log(message);
+  if (hasChanged && productsInStock.length > 3) {
+    return { key: websiteKey, products: productsInStock };
+  } else {
+    console.log(
+      `No significant stock change for ${website.name}. Skipping message.`
+    );
+    return { key: websiteKey, products: [] };
+  }
 }
 
 async function main() {
@@ -174,58 +201,27 @@ async function main() {
   console.log('main called', timestamp, jstHour);
 
   const previousStockMap = readPreviousStock();
+  // set of products (URLs) from each site that are currently in stock
   const currentStockMap: WebsiteStockMap = {
     SAZEN: [],
     IPPODO: [],
     NAKAMURA_TOKICHI: [],
   };
-  const inStockProducts: {
-    [K in WebsiteKey]: { manufacturer: string; name: string; url: string }[];
-  } = {
-    SAZEN: [],
-    IPPODO: [],
-    NAKAMURA_TOKICHI: [],
-  };
 
-  for (const websiteKey of Object.keys(WEBSITES) as WebsiteKey[]) {
-    const website = WEBSITES[websiteKey];
-    const products = readProductsFromFile(website.inventoryFile);
-    const productsInStock = [];
-
-    for (const product of products) {
-      const isInStock = await checkStockStatus(product);
-      if (isInStock) {
-        productsInStock.push(product);
-        currentStockMap[websiteKey].push(product.url);
-      }
-    }
-
-    // Check for changes
-    const hasChanged =
-      previousStockMap[websiteKey]?.length !==
-        currentStockMap[websiteKey].length ||
-      !previousStockMap[websiteKey]?.every((url) =>
-        currentStockMap[websiteKey].includes(url)
-      );
-
-    if (hasChanged && productsInStock.length > 0) {
-      inStockProducts[websiteKey] = productsInStock;
-    } else {
-      console.log(`No stock change for ${website.name}. Skipping message.`);
-    }
-  }
+  // Run all websites in parallel
+  const results = await Promise.all(
+    (Object.keys(WEBSITES) as WebsiteKey[]).map((websiteKey) =>
+      processWebsite(websiteKey, previousStockMap, currentStockMap)
+    )
+  );
 
   // Save updated stock
   savePreviousStock(currentStockMap);
 
   // Send messages only for changed websites
-  for (const websiteKey of Object.keys(inStockProducts) as WebsiteKey[]) {
-    if (inStockProducts[websiteKey].length > 0) {
-      await sendGroupedTelegramMessage(
-        websiteKey,
-        inStockProducts[websiteKey],
-        timestamp
-      );
+  for (const result of results) {
+    if (result.products.length) {
+      await sendGroupedTelegramMessage(result.key, result.products, timestamp);
     }
   }
 }
