@@ -4,7 +4,9 @@ import * as cheerio from 'cheerio';
 import { Telegraf } from 'telegraf';
 import * as fs from 'fs';
 import * as path from 'path';
-import { HEADERS, WebsiteKey, WEBSITES } from './constants';
+import { HEADERS, WEBSITES } from './constants';
+import { Product, ProductSummary, WebsiteStockMap, WebsiteKey } from './types';
+
 import { CookieJar } from 'tough-cookie';
 import { wrapper } from 'axios-cookiejar-support';
 
@@ -27,8 +29,6 @@ const client = wrapper(
 
 // To prevent spamming too much if the in-stock doesn't change between checks
 const STOCK_FILE = path.join(__dirname, 'previous-stock.json');
-// website, urls
-type WebsiteStockMap = Record<WebsiteKey, string[]>;
 
 function readPreviousStock(): WebsiteStockMap {
   return fs.existsSync(STOCK_FILE)
@@ -44,9 +44,7 @@ function savePreviousStock(stockMap: WebsiteStockMap) {
   fs.writeFileSync(STOCK_FILE, JSON.stringify(stockMap, null, 2), 'utf8');
 }
 
-function readProductsFromFile(
-  inventoryFile: string
-): { website: WebsiteKey; manufacturer: string; name: string; url: string }[] {
+function readProductsFromFile(inventoryFile: string): Product[] {
   const filePath = path.join(__dirname, inventoryFile);
   if (fs.existsSync(filePath)) {
     const data = fs.readFileSync(filePath, 'utf8');
@@ -58,12 +56,7 @@ function readProductsFromFile(
   }
 }
 
-async function checkStockStatus(product: {
-  website: WebsiteKey;
-  manufacturer: string;
-  name: string;
-  url: string;
-}): Promise<boolean> {
+async function checkStockStatus(product: Product): Promise<boolean> {
   return await client
     .get(product.url)
     .then((response) => {
@@ -111,7 +104,7 @@ async function checkStockStatus(product: {
 
 async function sendGroupedTelegramMessage(
   websiteKey: WebsiteKey,
-  productsInStock: { manufacturer: string; name: string; url: string }[],
+  productsInStock: ProductSummary[],
   timestamp: string
 ) {
   if (productsInStock.length) {
@@ -147,6 +140,7 @@ async function processWebsite(
   const productsInStock: typeof products = [];
 
   if (websiteKey === 'SAZEN') {
+    // sazen literally times out if i send too many requests in one go so i have to run it sequentially..
     for (const product of products) {
       const isInStock = await checkStockStatus(product);
       if (isInStock) {
@@ -191,14 +185,12 @@ async function processWebsite(
 }
 
 async function main() {
-  const now = new Date();
-  const timestamp = now.toLocaleString('en-GB', {
+  const timestamp = new Date().toLocaleString('en-GB', {
     dateStyle: 'full',
     timeStyle: 'long',
     timeZone: 'Asia/Singapore',
   });
-  const jstHour = now.getUTCHours() + 9;
-  console.log('main called', timestamp, jstHour);
+  console.log('main called:', timestamp);
 
   const previousStockMap = readPreviousStock();
   // set of products (URLs) from each site that are currently in stock
@@ -209,21 +201,27 @@ async function main() {
   };
 
   // Run all websites in parallel
-  const results = await Promise.all(
-    (Object.keys(WEBSITES) as WebsiteKey[]).map((websiteKey) =>
-      processWebsite(websiteKey, previousStockMap, currentStockMap)
-    )
+  // const results = await Promise.all(
+  //   (Object.keys(WEBSITES) as WebsiteKey[]).map((websiteKey) =>
+  //     processWebsite(websiteKey, previousStockMap, currentStockMap)
+  //   )
+  // );
+  // rip ippodo and nakamura :( can't afford anymore
+  const result = await processWebsite(
+    'SAZEN',
+    previousStockMap,
+    currentStockMap
   );
 
   // Save updated stock
   savePreviousStock(currentStockMap);
 
   // Send messages only for changed websites
-  for (const result of results) {
-    if (result.products.length) {
-      await sendGroupedTelegramMessage(result.key, result.products, timestamp);
-    }
+  // for (const result of results) {
+  if (result.products.length) {
+    await sendGroupedTelegramMessage(result.key, result.products, timestamp);
   }
+  // }
 }
 
 (async () => {
@@ -232,10 +230,3 @@ async function main() {
   console.log('Script execution completed.');
   process.exit(0); // Ensure the script exits after running
 })();
-
-// (async () => {
-//   console.log("Running bot script (sendOneTimeUpdateMessage)...");
-//   await sendOneTimeUpdateMessage();
-//   console.log("Script execution completed.");
-//   process.exit(0); // Ensure the script exits after running
-// })();
